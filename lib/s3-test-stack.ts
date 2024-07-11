@@ -4,6 +4,7 @@ import { RemovalPolicy } from "aws-cdk-lib";
 import { NodejsFunction } from "aws-cdk-lib/aws-lambda-nodejs";
 import * as path from "node:path";
 import * as s3 from "aws-cdk-lib/aws-s3";
+import * as apigateway from "aws-cdk-lib/aws-apigateway";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as cloudFrontOrigins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as iam from "aws-cdk-lib/aws-iam";
@@ -36,10 +37,33 @@ export class S3TestStack extends cdk.Stack {
 			timeout: cdk.Duration.seconds(60),
 		});
 
+		const dataUploaderFunction = new NodejsFunction(this, "DataUploaderFunction", {
+			functionName: "s3-upload-test-dataUploaderFunction",
+			entry: path.join(__dirname, "../lambdas/data-uploader/src/index.ts"),
+			depsLockFilePath: path.join(
+				__dirname,
+				"../lambdas/data-uploader/package-lock.json",
+			),
+			environment: {
+				BUCKET_NAME: bucket.bucketName,
+			},
+			handler: "handler",
+			runtime: cdk.aws_lambda.Runtime.NODEJS_20_X,
+			memorySize: 512,
+			timeout: cdk.Duration.seconds(60),
+		});
+
 		bucket.grantPut(uploadFunction);
 
 		// this.updateBucketPolicy({ bucket });
-		this.cloudFrontDistribution({ bucket });
+		const distribution = this.cloudFrontDistribution({ bucket });
+
+		dataUploaderFunction.addEnvironment("DOMAIN_NAME", distribution.domainName);
+
+		new apigateway.LambdaRestApi(this, "UploadTestApi", {
+			handler: dataUploaderFunction,
+			proxy: true,
+		});
 	}
 
 	/**
