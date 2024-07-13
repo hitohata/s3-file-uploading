@@ -10,4 +10,8 @@ app.get('/', (c) => {
     return c.text(url)
 })
 
+app.post("/", (c) => {
+    return c.json({ message: "Hello Hono!" });
+})
+
 export const handler = handle(app)
