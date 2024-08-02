@@ -10,7 +10,8 @@ app.get('/', (c) => {
     return c.text(url)
 })
 
-app.post("/", (c) => {
+app.post("/upload/:id", async (c) => {
+    const body = await c.req.parseBody();
     return c.json({ message: "Hello Hono!" });
 })
 
